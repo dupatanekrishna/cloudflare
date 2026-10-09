@@ -22,7 +22,7 @@ export default {
       return assetResponse(request, env, "/tracker.js");
     }
     if ((url.pathname === "/dashboard" || url.pathname === "/dashboard/") && request.method === "GET") {
-      return assetResponse(request, env, "/dashboard.html");
+      return assetResponse(request, env, "/dashboard");
     }
     if (url.pathname === "/v1/events" && (request.method === "POST" || request.method === "OPTIONS")) {
       return handleEvents(request, env, url);
@@ -43,10 +43,9 @@ export default {
 };
 
 async function assetResponse(request, env, pathname) {
-  const assetUrl = new URL(request.url);
-  assetUrl.pathname = pathname;
+  const assetUrl = new URL(pathname, request.url);
   assetUrl.search = "";
-  const asset = await env.ASSETS.fetch(new Request(assetUrl, request));
+  const asset = await env.ASSETS.fetch(assetUrl);
   if (!asset.ok) return json({ error: "Asset not found" }, 404);
   const headers = new Headers(asset.headers);
   headers.set("Cache-Control", pathname === "/tracker.js" ? "public, max-age=300" : "no-store");
