@@ -1,0 +1,24 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "site-analytics-api",
+  "main": "src/index.js",
+  "compatibility_date": "2026-10-09",
+  "assets": {
+    "directory": "./public",
+    "binding": "ASSETS",
+    "run_worker_first": true
+  },
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "site-analytics",
+      "database_id": "555db73e-208e-4532-a1ea-6b45c0f4dac6"
+    }
+  ],
+  "triggers": {
+    "crons": ["17 3 * * *"]
+  },
+  "observability": {
+    "enabled": false
+  }
+}

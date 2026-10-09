@@ -1,0 +1,224 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="dark light">
+  <title>Site analytics</title>
+  <style>
+    :root { color-scheme: dark; --bg:#0b1020; --panel:#121a2d; --line:#26334e; --muted:#9ba9c4; --text:#eef3ff; --accent:#7dd3fc; --accent2:#a78bfa; --green:#86efac; }
+    * { box-sizing:border-box; }
+    body { margin:0; background:radial-gradient(ellipse at 15% 0%, #172441 0, var(--bg) 48%); color:var(--text); font:15px/1.5 ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif; }
+    main { width:min(1120px,calc(100% - 32px)); margin:44px auto 72px; }
+    h1,h2,p { margin-top:0; }
+    h1 { font-size:clamp(28px,4vw,40px); letter-spacing:-.04em; margin-bottom:8px; }
+    h2 { font-size:16px; margin-bottom:18px; }
+    .sub,.hint,.muted { color:var(--muted); }
+    .sub { margin-bottom:26px; }
+    .panel { background:color-mix(in srgb,var(--panel) 94%,transparent); border:1px solid var(--line); border-radius:16px; padding:20px; box-shadow:0 14px 50px #0002; }
+    .controls { display:grid; grid-template-columns:1.15fr 1fr .8fr auto; gap:12px; align-items:end; }
+    label { display:block; font-size:12px; color:var(--muted); margin-bottom:6px; }
+    input,select,button { width:100%; border:1px solid var(--line); border-radius:9px; padding:11px 12px; background:#0b1222; color:var(--text); font:inherit; }
+    button { width:auto; min-width:100px; cursor:pointer; border-color:#4d8eb8; background:#14344b; font-weight:650; }
+    button:hover { background:#1d4968; }
+    .message { min-height:23px; color:var(--muted); margin:12px 0 0; }
+    .message.error { color:#fda4af; }
+    .metrics { display:grid; grid-template-columns:repeat(5,1fr); gap:12px; margin:18px 0; }
+    .metric { background:var(--panel); border:1px solid var(--line); padding:17px; border-radius:14px; min-height:102px; }
+    .metric span { display:block; color:var(--muted); font-size:12px; margin-bottom:10px; }
+    .metric strong { font-size:26px; letter-spacing:-.03em; }
+    .grid { display:grid; grid-template-columns:1fr 1fr; gap:14px; }
+    .wide { grid-column:1 / -1; }
+    .chart { display:flex; gap:8px; align-items:end; min-height:150px; padding:6px 0 0; overflow-x:auto; }
+    .day { flex:1; min-width:30px; display:flex; height:140px; flex-direction:column; align-items:center; justify-content:end; gap:8px; color:var(--muted); font-size:10px; }
+    .bar { width:min(30px,80%); min-height:2px; border-radius:6px 6px 2px 2px; background:linear-gradient(180deg,var(--accent),var(--accent2)); }
+    .bar-label { white-space:nowrap; }
+    .list { display:grid; gap:10px; }
+    .row { display:grid; grid-template-columns:minmax(80px,1fr) auto; align-items:center; gap:10px; }
+    .row-name { min-width:0; overflow-wrap:anywhere; }
+    .row-value { color:var(--muted); font-variant-numeric:tabular-nums; }
+    .track { grid-column:1 / -1; height:5px; background:#202a40; border-radius:5px; overflow:hidden; margin-top:-7px; }
+    .fill { height:100%; background:var(--accent); border-radius:5px; }
+    .table-wrap { overflow-x:auto; }
+    table { width:100%; border-collapse:collapse; text-align:left; }
+    th,td { padding:9px 7px; border-bottom:1px solid var(--line); font-size:13px; }
+    th { color:var(--muted); font-weight:550; }
+    .notice { margin-top:18px; font-size:12px; color:var(--muted); }
+    .badge { display:inline-block; border:1px solid #315d53; background:#15382e; color:var(--green); border-radius:99px; padding:3px 9px; font-size:11px; margin-left:8px; vertical-align:middle; }
+    @media(max-width:820px) { .controls { grid-template-columns:1fr 1fr; } .metrics { grid-template-columns:repeat(2,1fr); } .metric:last-child { grid-column:1 / -1; } }
+    @media(max-width:560px) { main { width:calc(100% - 22px); margin:26px auto 48px; } .controls,.grid { grid-template-columns:1fr; } .wide { grid-column:auto; } .panel { padding:15px; } .metrics { gap:8px; } .metric { padding:13px; min-height:90px; } .metric strong { font-size:22px; } }
+  </style>
+</head>
+<body>
+  <main>
+    <h1>Site analytics <span class="badge">Private report</span></h1>
+    <p class="sub">A small, privacy-conscious view of visits and interactions.</p>
+
+    <section class="panel" aria-label="Report settings">
+      <div class="controls">
+        <div><label for="site">Site ID</label><input id="site" value="dkalki-portfolio" autocomplete="off"></div>
+        <div><label for="token">Admin token</label><input id="token" type="password" autocomplete="off" placeholder="Paste your Worker secret"></div>
+        <div><label for="days">Date range</label><select id="days"><option value="7">Last 7 days</option><option value="30">Last 30 days</option><option value="90">Last 90 days</option></select></div>
+        <button id="load" type="button">Load report</button>
+      </div>
+      <p id="message" class="message" role="status"></p>
+    </section>
+
+    <section class="metrics" aria-label="Summary metrics">
+      <div class="metric"><span>Tab sessions</span><strong id="sessions">—</strong></div>
+      <div class="metric"><span>Page views</span><strong id="pageviews">—</strong></div>
+      <div class="metric"><span>Link and section clicks</span><strong id="clicks">—</strong></div>
+      <div class="metric"><span>Avg active time / page view</span><strong id="active">—</strong></div>
+      <div class="metric"><span>Chatbot events</span><strong id="chat">—</strong></div>
+    </section>
+
+    <section class="grid">
+      <article class="panel wide"><h2>Visits by day</h2><div id="daily" class="chart"><p class="muted">Load a report to see daily visits.</p></div></article>
+      <article class="panel"><h2>Top pages</h2><div id="pages" class="list"></div></article>
+      <article class="panel"><h2>Browsers</h2><div id="browsers" class="list"></div></article>
+      <article class="panel"><h2>Devices</h2><div id="devices" class="list"></div></article>
+      <article class="panel"><h2>Operating systems</h2><div id="systems" class="list"></div></article>
+      <article class="panel"><h2>Chatbot activity</h2><div id="chattypes" class="list"></div></article>
+      <article class="panel"><h2>External link clicks</h2><div id="links" class="list"></div></article>
+      <article class="panel wide"><h2>Approximate locations</h2><div id="locations" class="table-wrap"></div></article>
+    </section>
+    <p class="notice">Sessions are temporary per-tab IDs. Location is approximate and may be unavailable. Active time counts while the page is visible. The report does not show names, IP addresses, chat messages, or form entries. The token stays in this page's memory and is not saved by the dashboard.</p>
+  </main>
+  <script>
+    (function () {
+      "use strict";
+      var $ = function (id) { return document.getElementById(id); };
+      var message = $("message");
+      function setMessage(text, error) {
+        message.textContent = text || "";
+        message.className = error ? "message error" : "message";
+      }
+      function setMetric(id, value) { $(id).textContent = value; }
+      function empty(el, text) {
+        el.replaceChildren();
+        var p = document.createElement("p");
+        p.className = "muted";
+        p.textContent = text;
+        el.appendChild(p);
+      }
+      function renderList(id, rows) {
+        var root = $(id);
+        root.replaceChildren();
+        if (!rows || !rows.length) return empty(root, "No data for this period.");
+        var max = Math.max.apply(null, rows.map(function (r) { return Number(r.count) || 0; }).concat([1]));
+        rows.forEach(function (row) {
+          var line = document.createElement("div");
+          line.className = "row";
+          var name = document.createElement("span");
+          name.className = "row-name";
+          name.textContent = row.name || "Unknown";
+          var count = document.createElement("span");
+          count.className = "row-value";
+          count.textContent = Number(row.count || 0).toLocaleString();
+          var track = document.createElement("div");
+          track.className = "track";
+          var fill = document.createElement("div");
+          fill.className = "fill";
+          fill.style.width = Math.max(2, (Number(row.count || 0) / max) * 100) + "%";
+          track.appendChild(fill);
+          line.append(name, count, track);
+          root.appendChild(line);
+        });
+      }
+      function renderDaily(rows) {
+        var root = $("daily");
+        root.replaceChildren();
+        if (!rows || !rows.length) return empty(root, "No visits for this period.");
+        var max = Math.max.apply(null, rows.map(function (r) { return Number(r.sessions) || 0; }).concat([1]));
+        rows.forEach(function (row) {
+          var day = document.createElement("div");
+          day.className = "day";
+          var count = document.createElement("span");
+          count.textContent = Number(row.sessions || 0).toLocaleString();
+          var bar = document.createElement("div");
+          bar.className = "bar";
+          bar.style.height = Math.max(2, (Number(row.sessions || 0) / max) * 100) + "px";
+          bar.title = count.textContent + " sessions";
+          var label = document.createElement("span");
+          label.className = "bar-label";
+          label.textContent = row.day ? row.day.slice(5) : "";
+          day.append(count, bar, label);
+          root.appendChild(day);
+        });
+      }
+      function renderLocations(rows) {
+        var root = $("locations");
+        root.replaceChildren();
+        if (!rows || !rows.length) return empty(root, "No location data for this period.");
+        var table = document.createElement("table");
+        var head = document.createElement("thead");
+        var header = document.createElement("tr");
+        ["Country", "Region", "City", "Sessions"].forEach(function (title) {
+          var th = document.createElement("th");
+          th.textContent = title;
+          header.appendChild(th);
+        });
+        head.appendChild(header);
+        var body = document.createElement("tbody");
+        rows.forEach(function (row) {
+          var tr = document.createElement("tr");
+          [row.country, row.region, row.city, Number(row.sessions || 0).toLocaleString()].forEach(function (value) {
+            var td = document.createElement("td");
+            td.textContent = value || "—";
+            tr.appendChild(td);
+          });
+          body.appendChild(tr);
+        });
+        table.append(head, body);
+        root.appendChild(table);
+      }
+      function formatDuration(seconds) {
+        seconds = Number(seconds) || 0;
+        if (seconds < 60) return Math.round(seconds) + " sec";
+        return Math.floor(seconds / 60) + " min " + Math.round(seconds % 60) + " sec";
+      }
+      async function loadReport() {
+        var site = $("site").value.trim();
+        var token = $("token").value;
+        if (!site || !token) return setMessage("Enter the site ID and admin token.", true);
+        setMessage("Loading report…", false);
+        $("load").disabled = true;
+        try {
+          var url = new URL("/v1/summary", window.location.origin);
+          url.searchParams.set("site", site);
+          url.searchParams.set("days", $("days").value);
+          var response = await fetch(url, { headers: { "Authorization": "Bearer " + token } });
+          var data = await response.json();
+          if (!response.ok) throw new Error(data.error || "Could not load report.");
+          var totals = data.totals || {};
+          setMetric("sessions", Number(totals.sessions || 0).toLocaleString());
+          setMetric("pageviews", Number(totals.page_views || 0).toLocaleString());
+          setMetric("clicks", Number(totals.clicks || 0).toLocaleString());
+          setMetric("active", formatDuration(totals.avg_active_seconds_per_page_view));
+          setMetric("chat", Number(totals.chatbot_events || 0).toLocaleString());
+          renderDaily(data.daily);
+          renderList("pages", data.top_pages);
+          renderList("browsers", data.browsers);
+          renderList("devices", data.devices);
+          renderList("systems", data.operating_systems);
+          renderList("chattypes", (data.chatbot || []).map(function (row) {
+            return { name: row.name.replace(/^chat_/, "").replace(/_/g, " "), count: row.count };
+          }));
+          renderList("links", data.external_links);
+          renderLocations(data.locations);
+          setMessage("Updated for the last " + data.days + " days.", false);
+        } catch (error) {
+          setMessage(error && error.message ? error.message : "Could not load report.", true);
+        } finally {
+          $("load").disabled = false;
+        }
+      }
+      $("load").addEventListener("click", loadReport);
+      $("token").addEventListener("keydown", function (event) { if (event.key === "Enter") loadReport(); });
+      $("days").addEventListener("change", function () {
+        if ($("token").value) loadReport();
+      });
+    })();
+  </script>
+</body>
+</html>
