@@ -2,6 +2,8 @@
 
 This is the learning index for the account, not a claim that every product is enabled on every plan. The live [Cloudflare product directory](https://developers.cloudflare.com/directory/) is the source of truth for the full and current catalog. Record access, plan requirements, and pricing from the dashboard before building a lab.
 
+Use the [dated product inventory](product-inventory.md) to track directory entries one by one. It includes documentation collections and feature pages as well as services, so not every row represents a standalone or billable product.
+
 For each item, use a lab note with one of these outcomes: **read** (concepts understood), **reviewed** (dashboard/API access checked), **lab** (hands-on experiment completed), or **not available** (not enabled or not appropriate for this account).
 
 ## Core platform and traffic
