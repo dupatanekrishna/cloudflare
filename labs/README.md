@@ -1,21 +1,22 @@
-# Labs
+# Cloudflare dashboard labs
 
-Labs are small experiments designed to be run, observed, and cleaned up independently. Keep generated projects in labs/projects/<family>/<lab-name> and do not edit the existing groot-api Worker as part of the starter exercises.
+All experiments in this repository are intended to run in the Cloudflare dashboard. There are no local Worker projects or CLI steps.
 
-## Current labs
+## Current experiment
 
-| Lab | Focus | Cloud resource created |
+| Lab | Focus | Status |
 |---|---|---|
-| [00 — Account baseline and safety](00-account-baseline-and-safety.md) | Inventory, access, cost, and isolation | No |
-| [01 — First Worker request](01-workers-first-request.md) | Local Worker, request/response, optional deployment | Optional separate test Worker |
+| [01 — Workers dashboard experiment](01-workers-first-request.md) | Create and verify a separate test Worker in Workers & Pages | Not tested yet |
+
+The account screenshot shows an existing **groot-api** Worker. It is inventory only and must remain unchanged.
 
 ## Lab lifecycle
 
-1. Read the entire lab and its cost/cleanup notes.
-2. Record prerequisites and the exact test resource names.
-3. Run the local or read-only steps first.
-4. Deploy only if the lab explicitly calls for it and the account's current product limits/pricing have been checked.
-5. Save evidence that does not contain secrets or private user data.
-6. Clean up the lab resource, or state clearly why it remains.
+1. Confirm the service is available in the account dashboard.
+2. Check the current plan, limits, and pricing before creating anything.
+3. Perform one isolated experiment in the dashboard.
+4. Verify the result in the dashboard and through the service's own test surface.
+5. Record only observed behavior, errors, and cleanup details.
+6. Mark the lab complete only after evidence is captured without secrets or account identifiers.
 
-Use [TEMPLATE.md](TEMPLATE.md) when adding the next experiment.
+Use [TEMPLATE.md](TEMPLATE.md) to record a new experiment after the current one has been tested.
