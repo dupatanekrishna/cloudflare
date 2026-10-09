@@ -53,6 +53,10 @@ async function assetResponse(request, env, pathname) {
   if (pathname === "/tracker.js") {
     headers.set("Content-Type", "text/javascript; charset=utf-8");
     headers.set("X-Content-Type-Options", "nosniff");
+  } else {
+    headers.set("Content-Security-Policy", "default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; connect-src 'self'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'");
+    headers.set("X-Frame-Options", "DENY");
+    headers.set("Referrer-Policy", "no-referrer");
   }
   return new Response(asset.body, { status: asset.status, headers });
 }
@@ -126,6 +130,7 @@ async function handleSummary(request, env, url) {
   const siteId = cleanId(url.searchParams.get("site"));
   const origin = request.headers.get("Origin") || "";
   const cors = origin ? corsHeaders(origin) : new Headers();
+  if (origin && origin !== new URL(request.url).origin) return json({ error: "Cross-origin report requests are not allowed" }, 403);
   if (request.method === "OPTIONS") {
     cors.set("Access-Control-Allow-Methods", "GET, OPTIONS");
     cors.set("Access-Control-Allow-Headers", "Authorization");
@@ -144,7 +149,7 @@ async function handleSummary(request, env, url) {
   const days = Number.isFinite(parsedDays) ? Math.max(1, Math.min(MAX_DAYS, parsedDays)) : 7;
   const since = Math.floor(Date.now() / 1000) - days * 86400;
   try {
-    const [totals, daily, pages, browsers, devices, locations, externalLinks, chat] = await Promise.all([
+    const [totals, daily, pages, browsers, devices, operatingSystems, locations, externalLinks, chat] = await Promise.all([
       env.DB.prepare(
         "SELECT COUNT(DISTINCT session_id) AS sessions, SUM(CASE WHEN event_type = 'page_view' THEN 1 ELSE 0 END) AS page_views, SUM(CASE WHEN event_type IN ('section_click','internal_link_click','external_link_click') THEN 1 ELSE 0 END) AS clicks, SUM(CASE WHEN event_type LIKE 'chat_%' THEN 1 ELSE 0 END) AS chatbot_events, SUM(CASE WHEN event_type = 'active_time' THEN active_ms ELSE 0 END) AS active_ms FROM events WHERE site_id = ? AND created_at >= ?"
       ).bind(siteId, since).first(),
@@ -159,6 +164,9 @@ async function handleSummary(request, env, url) {
       ).bind(siteId, since).all(),
       env.DB.prepare(
         "SELECT device_type AS name, COUNT(*) AS count FROM events WHERE site_id = ? AND event_type = 'page_view' AND created_at >= ? GROUP BY device_type ORDER BY count DESC LIMIT 10"
+      ).bind(siteId, since).all(),
+      env.DB.prepare(
+        "SELECT os AS name, COUNT(*) AS count FROM events WHERE site_id = ? AND event_type = 'page_view' AND created_at >= ? GROUP BY os ORDER BY count DESC LIMIT 10"
       ).bind(siteId, since).all(),
       env.DB.prepare(
         "SELECT COALESCE(country, 'Unknown') AS country, COALESCE(region, '') AS region, COALESCE(city, '') AS city, COUNT(DISTINCT session_id) AS sessions FROM events WHERE site_id = ? AND event_type = 'page_view' AND created_at >= ? GROUP BY country, region, city ORDER BY sessions DESC LIMIT 12"
@@ -187,6 +195,7 @@ async function handleSummary(request, env, url) {
       top_pages: pages.results || [],
       browsers: browsers.results || [],
       devices: devices.results || [],
+      operating_systems: operatingSystems.results || [],
       locations: locations.results || [],
       external_links: externalLinks.results || [],
       chatbot: chat.results || []
@@ -213,16 +222,16 @@ async function isAllowedOrigin(env, siteId, origin) {
 function classifyAgent(ua) {
   const value = ua.toLowerCase();
   let browser = "Unknown";
-  if (value.includes("edg/")) browser = "Edge";
-  else if (value.includes("opr/") || value.includes("opera")) browser = "Opera";
-  else if (value.includes("firefox/")) browser = "Firefox";
+  if (value.includes("edg/") || value.includes("edgios/")) browser = "Edge";
+  else if (value.includes("opr/") || value.includes("opios/") || value.includes("opera")) browser = "Opera";
+  else if (value.includes("firefox/") || value.includes("fxios/")) browser = "Firefox";
   else if (value.includes("crios/")) browser = "Chrome";
   else if (value.includes("chrome/")) browser = "Chrome";
   else if (value.includes("safari/")) browser = "Safari";
 
   let os = "Unknown";
   if (/android/.test(value)) os = "Android";
-  else if (/iphone|ipad|ipod/.test(value)) os = "iOS";
+  else if (/iphone|ipad|ipod|cpu os/.test(value)) os = "iOS";
   else if (/windows/.test(value)) os = "Windows";
   else if (/mac os|macintosh/.test(value)) os = "macOS";
   else if (/linux/.test(value)) os = "Linux";
