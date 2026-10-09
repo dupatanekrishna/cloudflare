@@ -1,40 +1,39 @@
-# Cloudflare Learn & Build
+# Cloudflare Cloud Labs
 
-A hands-on notebook for exploring Cloudflare's products through small, documented experiments. The aim is to learn how the services fit together, verify behavior with evidence, and keep each experiment safe to repeat and easy to clean up.
+A cloud-only learning notebook for exploring Cloudflare products through small, verified experiments. All hands-on work happens in the Cloudflare dashboard. This repository records what was actually tested, what the dashboard showed, and what should be tried next.
+
+No local Worker project, Wrangler command, shell-based deployment, or local lab environment is part of this workflow.
 
 ## Start here
 
-1. Read the [learning roadmap](docs/roadmap.md).
-2. Browse the [service map](docs/service-map.md) and mark the areas you want to study.
-3. Set your account boundaries with [Lab 00: account baseline and safety](labs/00-account-baseline-and-safety.md).
-4. Run [Lab 01: your first Worker](labs/01-workers-first-request.md).
-5. Use the [lab index](labs/README.md) and [lab template](labs/TEMPLATE.md) for each experiment.
+1. Use the [product inventory](docs/product-inventory.md) as a docs-derived catalog, not as proof that a service is enabled on this account.
+2. Start with [Workers — dashboard experiment](labs/01-workers-first-request.md).
+3. Follow the [lab index](labs/README.md) and record only observed results in each lab.
+4. Use the [lab template](labs/TEMPLATE.md) for the next service after the Workers test is verified.
 
-## Current starting point
+## Current state
 
-The Cloudflare dashboard screenshot shared for this project on 2026-10-10 shows Workers & Pages and an existing Worker named **groot-api**. It is recorded only as an inventory note. The first lab creates a separate local project; it does not change, deploy over, or delete that Worker.
+- The screenshot shared for this project shows Workers & Pages and an existing Worker named **groot-api**.
+- **groot-api** is an existing workload and is not the test target.
+- No Workers experiment has been tested in the account yet, and no Cloudflare resource was created by this repository work.
+- The Workers experiment is pending direct dashboard access.
 
-No Cloudflare resources were provisioned as part of this repository setup.
+## Rules for this learning project
 
-## Lab rules
-
-- Use names beginning with cf-lab or lab- for disposable resources.
-- Keep generated projects under labs/projects/ so the root stays a documentation and index area.
-- Test locally first. Deploy only after reviewing the current plan, limits, and pricing for that product.
-- Keep credentials out of source control. Do not commit API tokens, .dev.vars, .env files, account IDs, or private customer data.
-- Record the exact resource name and cleanup step in every lab that creates cloud resources.
-- Prefer scoped tokens and the minimum permissions needed; never use a global key in a lab.
-- Separate learning resources from production routes, domains, and application code.
+- Work in the Cloudflare dashboard only.
+- Use a separate, clearly named test resource; never edit, overwrite, or delete **groot-api** or another existing workload.
+- Test one service at a time. Record the observed behavior before marking a lab complete or moving to the next service.
+- Check account availability, current limits, and pricing before creating a resource. Stop if the dashboard requires a paid upgrade or unclear commitment.
+- Do not record account IDs, tokens, email addresses, private domains, customer data, or other secrets in this repository.
+- Do not claim a feature works in this account until it has been tested in the account.
 
 ## Repository structure
 
-- docs/roadmap.md — staged learning plan and completion criteria.
-- docs/service-map.md — product families and a living discovery checklist.
-- docs/product-inventory.md — dated checkbox inventory of the live directory.
-- labs/ — repeatable experiments, beginning with Workers.
-- labs/projects/ — generated sample applications created during hands-on work.
+- docs/roadmap.md — service exploration sequence; future stages remain untested until verified.
+- docs/service-map.md — product families and discovery checklist.
+- docs/product-inventory.md — dated snapshot of entries in Cloudflare's public documentation directory.
+- labs/ — experiment plans and verified results.
 
-## Cloudflare product references
+## Product references
 
-Cloudflare's catalog changes over time. Use the [official product directory](https://developers.cloudflare.com/directory/) as the live index, and the [Cloudflare Fundamentals getting-started guide](https://developers.cloudflare.com/fundamentals/get-started/) for account and product concepts. Product availability, limits, and pricing depend on the account and product; check the dashboard before provisioning.
-
+Cloudflare's [official product directory](https://developers.cloudflare.com/directory/) changes over time. The inventory in this repo is a documentation snapshot; account availability and observed behavior must be verified in the dashboard before a lab is marked complete.
