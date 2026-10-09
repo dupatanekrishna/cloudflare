@@ -30,6 +30,7 @@ No Cloudflare resources were provisioned as part of this repository setup.
 
 - docs/roadmap.md — staged learning plan and completion criteria.
 - docs/service-map.md — product families and a living discovery checklist.
+- docs/product-inventory.md — dated checkbox inventory of the live directory.
 - labs/ — repeatable experiments, beginning with Workers.
 - labs/projects/ — generated sample applications created during hands-on work.
 
