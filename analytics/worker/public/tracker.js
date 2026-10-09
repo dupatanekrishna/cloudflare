@@ -1,6 +1,7 @@
 (function () {
   "use strict";
   if (window.siteAnalytics) return;
+  window.siteAnalytics = { track: function () {} };
 
   var script = document.currentScript;
   if (!script) return;
@@ -91,8 +92,9 @@
     var destination;
     try { destination = new URL(link.href, window.location.href); } catch (_) { return; }
 
+    if (destination.protocol !== "http:" && destination.protocol !== "https:") return;
     if (destination.origin !== window.location.origin) {
-      send("external_link_click", { target: destination.hostname, target_host: destination.hostname });
+      if (destination.hostname) send("external_link_click", { target: destination.hostname, target_host: destination.hostname });
       return;
     }
 
