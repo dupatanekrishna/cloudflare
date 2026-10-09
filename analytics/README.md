@@ -17,7 +17,7 @@ The browser script records:
 
 The collector stores an ephemeral, random session ID in sessionStorage so it can group activity in one browser tab. This is not a name or account ID. Location is IP-derived and approximate; it is not GPS.
 
-The collector does not store IP addresses, raw user-agent strings, query strings, URL fragments, form values, or chatbot message text. Do not add those values to custom events.
+The collector does not store IP addresses, raw user-agent strings, query strings, URL fragments, form values, or chatbot message text. Do not add those values to custom events. The script honors browser Do Not Track and Global Privacy Control signals. Session IDs are temporary per-tab analytics IDs; they do not identify a named person or prove that a visitor logged in. Active time is approximate and counts only while the page is visible.
 
 Cloudflare Web Analytics can report aggregate browser, device, country, and referrer data, but it does not currently support custom events such as clicks or chatbot usage. This project adds those event types.
 
