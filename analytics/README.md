@@ -36,7 +36,7 @@ All steps can be completed in Cloudflare and GitHub's web interface; no local se
 1. In Cloudflare, create a D1 database named site-analytics.
 2. Open the D1 console and run the contents of db/schema.sql. It registers the first site as dkalki-portfolio for the origin shown there. Add more sites and origins using the same tables when you generalize the tracker.
 3. Copy the database ID. In this repository's feat/site-analytics branch, edit worker/wrangler.jsonc and replace REPLACE_WITH_D1_DATABASE_ID with that ID. Commit only that file change.
-4. In Workers & Pages, create a Worker from the Git repository dupatanekrishna/cloudflare. Select branch feat/site-analytics and root directory analytics/worker. Use npm install as the build command and npx wrangler deploy as the deploy command.
+4. In Workers & Pages, select Create application → Get started next to Import a repository. Connect the GitHub account if prompted, choose dupatanekrishna/cloudflare, select branch feat/site-analytics, and set the root directory to analytics/worker. Leave the build command blank. Set the deploy command to npx wrangler deploy, then save and deploy.
 5. After the Worker is created, set ADMIN_TOKEN as a Worker secret in Settings → Variables and Secrets. Use a password-manager-generated random value; do not commit it.
 6. Visit the Worker's /health path. It should return {"ok":true}. Open /dashboard, enter dkalki-portfolio and the ADMIN_TOKEN value, then load the report.
 7. Copy the Worker's workers.dev URL. In the GitHub Pages repository, add the script tag shown below to the shared HTML page. This is the only portfolio-site change needed for page views, time, and link clicks.
