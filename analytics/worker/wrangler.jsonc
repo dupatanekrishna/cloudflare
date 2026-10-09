@@ -12,7 +12,7 @@
     {
       "binding": "DB",
       "database_name": "site-analytics",
-      "database_id": "REPLACE_WITH_D1_DATABASE_ID"
+      "database_id": "555db73e-208e-4532-a1ea-6b45c0f4dac6"
     }
   ],
   "triggers": {
