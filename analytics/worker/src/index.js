@@ -11,6 +11,7 @@ const ALLOWED_EVENTS = new Set([
 ]);
 const MAX_BODY_BYTES = 4096;
 const MAX_DAYS = 90;
+const IST_OFFSET_SECONDS = 19800;
 
 export default {
   async fetch(request, env) {
@@ -144,17 +145,22 @@ async function handleSummary(request, env, url) {
   const enabled = await env.DB.prepare("SELECT site_id FROM sites WHERE site_id = ? AND enabled = 1").bind(siteId).first();
   if (!enabled) return json({ error: "Unknown site" }, 404, cors);
 
-  const parsedDays = Number.parseInt(url.searchParams.get("days") || "7", 10);
+  const requestedRange = url.searchParams.get("range") || "";
+  const isToday = requestedRange.toLowerCase() === "today";
+  const requestedDays = /^[0-9]+$/.test(requestedRange) ? requestedRange : (url.searchParams.get("days") || "7");
+  const parsedDays = Number.parseInt(requestedDays, 10);
   const days = Number.isFinite(parsedDays) ? Math.max(1, Math.min(MAX_DAYS, parsedDays)) : 7;
   const now = Math.floor(Date.now() / 1000);
-  const since = now - days * 86400;
+  const since = isToday ? startOfTodayIst(now) : now - days * 86400;
+  const startDateIst = istDateString(since);
+  const endDateIst = istDateString(now);
   try {
     const [totals, daily, pages, browsers, devices, operatingSystems, locations, externalLinks, chat] = await Promise.all([
       env.DB.prepare(
         "SELECT COUNT(DISTINCT session_id) AS sessions, SUM(CASE WHEN event_type = 'page_view' THEN 1 ELSE 0 END) AS page_views, SUM(CASE WHEN event_type IN ('section_click','internal_link_click','external_link_click') THEN 1 ELSE 0 END) AS clicks, SUM(CASE WHEN event_type LIKE 'chat_%' THEN 1 ELSE 0 END) AS chatbot_events, SUM(CASE WHEN event_type = 'active_time' THEN active_ms ELSE 0 END) AS active_ms FROM events WHERE site_id = ? AND created_at >= ?"
       ).bind(siteId, since).first(),
       env.DB.prepare(
-        "SELECT date(created_at, 'unixepoch') AS day, COUNT(DISTINCT session_id) AS sessions, SUM(CASE WHEN event_type = 'page_view' THEN 1 ELSE 0 END) AS page_views FROM events WHERE site_id = ? AND created_at >= ? GROUP BY day ORDER BY day"
+        "SELECT date(created_at, 'unixepoch', '+5 hours', '+30 minutes') AS day, COUNT(DISTINCT session_id) AS sessions, SUM(CASE WHEN event_type = 'page_view' THEN 1 ELSE 0 END) AS page_views FROM events WHERE site_id = ? AND created_at >= ? GROUP BY day ORDER BY day"
       ).bind(siteId, since).all(),
       env.DB.prepare(
         "SELECT page_path AS name, COUNT(*) AS count FROM events WHERE site_id = ? AND event_type = 'page_view' AND created_at >= ? GROUP BY page_path ORDER BY count DESC LIMIT 10"
@@ -184,7 +190,11 @@ async function handleSummary(request, env, url) {
     return json({
       site_id: siteId,
       days,
+      period: isToday ? "today" : "rolling",
       range: {
+        timezone: "Asia/Kolkata",
+        start_date_ist: startDateIst,
+        end_date_ist: endDateIst,
         start_utc: new Date(since * 1000).toISOString().slice(0, 10),
         end_utc: new Date(now * 1000).toISOString().slice(0, 10)
       },
@@ -209,6 +219,15 @@ async function handleSummary(request, env, url) {
   } catch {
     return json({ error: "Could not load report" }, 503, cors);
   }
+}
+
+function startOfTodayIst(nowSeconds) {
+  const shiftedNow = new Date((nowSeconds + IST_OFFSET_SECONDS) * 1000);
+  const midnightUtc = Date.UTC(shiftedNow.getUTCFullYear(), shiftedNow.getUTCMonth(), shiftedNow.getUTCDate());
+  return Math.floor(midnightUtc / 1000) - IST_OFFSET_SECONDS;
+}
+function istDateString(epochSeconds) {
+  return new Date((epochSeconds + IST_OFFSET_SECONDS) * 1000).toISOString().slice(0, 10);
 }
 
 async function isAllowedOrigin(env, siteId, origin) {
