@@ -38,16 +38,16 @@ All steps can be completed in Cloudflare and GitHub's web interface; no local se
 3. Copy the database ID. In this repository's feat/site-analytics branch, edit worker/wrangler.jsonc and replace REPLACE_WITH_D1_DATABASE_ID with that ID. Commit only that file change.
 4. In Workers & Pages, select Create application → Get started next to Import a repository. Connect the GitHub account if prompted, choose dupatanekrishna/cloudflare, select branch feat/site-analytics, and set the root directory to analytics/worker. Leave the build command blank. Set the deploy command to npx wrangler deploy, then save and deploy.
 5. After the Worker is created, set ADMIN_TOKEN as a Worker secret in Settings → Variables and Secrets. Use a password-manager-generated random value; do not commit it.
-6. Visit the Worker's /health path. It should return {"ok":true}. Open /dashboard, enter dkalki-portfolio and the ADMIN_TOKEN value, then load the report.
-7. Copy the Worker's workers.dev URL. In the GitHub Pages repository, add the script tag shown below to the shared HTML page. This is the only portfolio-site change needed for page views, time, and link clicks.
+6. In Cloudflare, select the `site-analytics-api` Worker and add `analytics.dkalki.com` under Settings → Domains & Routes → Custom Domains. Wait until the custom domain is active.
+7. Verify `https://analytics.dkalki.com/health` returns `{"ok":true}`. Open `https://analytics.dkalki.com/dashboard`, enter dkalki-portfolio and the ADMIN_TOKEN value, then load the report.
 
 ~~~html
-<script defer src="https://site-analytics-api.YOUR_ACCOUNT_SUBDOMAIN.workers.dev/tracker.js" data-site-id="dkalki-portfolio"></script>
+<script defer src="https://analytics.dkalki.com/tracker.js" data-site-id="dkalki-portfolio"></script>
 ~~~
 
-Replace YOUR_ACCOUNT_SUBDOMAIN with the workers.dev subdomain shown by Cloudflare. Keep the site ID consistent with the D1 registration. The current allowed origin is the live site origin in db/schema.sql. If the live hostname changes, update site_origins and rerun the site registration SQL.
+Keep the site ID consistent with the D1 registration. The only portfolio edit needed is this analytics script URL on each page being tracked. The current allowed origin is the live site origin in db/schema.sql. If the live hostname changes, update site_origins and rerun the site registration SQL.
 
-8. Open the live site in a new browser tab, visit a few sections, and click a test external link. Return to /dashboard and refresh the report.
+9. Open the live site in a new browser tab, visit a few sections, and click a test external link. Return to `https://analytics.dkalki.com/dashboard` and refresh the report.
 
 ## Chatbot event integration
 
@@ -79,5 +79,5 @@ For each site, add one row to sites and one or more exact origins to site_origin
 - GET /health — non-sensitive health check.
 - GET /tracker.js — public browser script.
 - POST /v1/events?site=SITE_ID — validated event ingestion.
-- GET /v1/summary?site=SITE_ID&days=7 — aggregate report; requires Authorization: Bearer ADMIN_TOKEN.
+- GET /v1/summary?site=SITE_ID&range=today — today's Asia/Kolkata calendar day, through the current time; requires Authorization: Bearer ADMIN_TOKEN. Use `days=7`, `days=30`, or `days=90` for rolling windows.
 - GET /dashboard — report UI; requires the admin token when loading report data.
