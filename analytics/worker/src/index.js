@@ -146,7 +146,8 @@ async function handleSummary(request, env, url) {
 
   const parsedDays = Number.parseInt(url.searchParams.get("days") || "7", 10);
   const days = Number.isFinite(parsedDays) ? Math.max(1, Math.min(MAX_DAYS, parsedDays)) : 7;
-  const since = Math.floor(Date.now() / 1000) - days * 86400;
+  const now = Math.floor(Date.now() / 1000);
+  const since = now - days * 86400;
   try {
     const [totals, daily, pages, browsers, devices, operatingSystems, locations, externalLinks, chat] = await Promise.all([
       env.DB.prepare(
@@ -177,18 +178,24 @@ async function handleSummary(request, env, url) {
         "SELECT event_type AS name, COUNT(*) AS count FROM events WHERE site_id = ? AND event_type LIKE 'chat_%' AND created_at >= ? GROUP BY event_type ORDER BY count DESC"
       ).bind(siteId, since).all()
     ]);
+    const sessions = Number(totals?.sessions || 0);
     const pageViews = Number(totals?.page_views || 0);
     const activeMs = Number(totals?.active_ms || 0);
     return json({
       site_id: siteId,
       days,
+      range: {
+        start_utc: new Date(since * 1000).toISOString().slice(0, 10),
+        end_utc: new Date(now * 1000).toISOString().slice(0, 10)
+      },
       totals: {
-        sessions: Number(totals?.sessions || 0),
+        sessions,
         page_views: pageViews,
         clicks: Number(totals?.clicks || 0),
         chatbot_events: Number(totals?.chatbot_events || 0),
         active_seconds: Math.round(activeMs / 1000),
-        avg_active_seconds_per_page_view: pageViews ? Math.round(activeMs / pageViews / 1000) : 0
+        avg_active_seconds_per_page_view: pageViews ? Math.round(activeMs / pageViews / 1000) : 0,
+        avg_active_seconds_per_session: sessions ? Math.round(activeMs / sessions / 1000) : 0
       },
       daily: daily.results || [],
       top_pages: pages.results || [],
