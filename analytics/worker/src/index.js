@@ -130,8 +130,8 @@ async function handleSummary(request, env, url) {
   const siteId = cleanId(url.searchParams.get("site"));
   const origin = request.headers.get("Origin") || "";
   const sameOrigin = origin === new URL(request.url).origin;
-  const isGitHubPagesOrigin = origin === "https://dupatanekrishna.github.io";
-  if (origin && !sameOrigin && !isGitHubPagesOrigin) {
+  const isDashboardOrigin = origin === "https://dupatanekrishna.github.io" || origin === "https://analytics.dkalki.com";
+  if (origin && !sameOrigin && !isDashboardOrigin) {
     return json({ error: "Cross-origin report requests are not allowed" }, 403);
   }
   const cors = origin ? corsHeaders(origin) : new Headers();
