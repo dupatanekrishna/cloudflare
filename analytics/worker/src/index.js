@@ -178,18 +178,20 @@ async function handleSummary(request, env, url) {
         "SELECT event_type AS name, COUNT(*) AS count FROM events WHERE site_id = ? AND event_type LIKE 'chat_%' AND created_at >= ? GROUP BY event_type ORDER BY count DESC"
       ).bind(siteId, since).all()
     ]);
+    const sessions = Number(totals?.sessions || 0);
     const pageViews = Number(totals?.page_views || 0);
     const activeMs = Number(totals?.active_ms || 0);
     return json({
       site_id: siteId,
       days,
       totals: {
-        sessions: Number(totals?.sessions || 0),
+        sessions,
         page_views: pageViews,
         clicks: Number(totals?.clicks || 0),
         chatbot_events: Number(totals?.chatbot_events || 0),
         active_seconds: Math.round(activeMs / 1000),
-        avg_active_seconds_per_page_view: pageViews ? Math.round(activeMs / pageViews / 1000) : 0
+        avg_active_seconds_per_page_view: pageViews ? Math.round(activeMs / pageViews / 1000) : 0,
+        avg_active_seconds_per_session: sessions ? Math.round(activeMs / sessions / 1000) : 0
       },
       daily: daily.results || [],
       top_pages: pages.results || [],
