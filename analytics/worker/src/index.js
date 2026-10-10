@@ -129,8 +129,12 @@ async function handleEvents(request, env, url) {
 async function handleSummary(request, env, url) {
   const siteId = cleanId(url.searchParams.get("site"));
   const origin = request.headers.get("Origin") || "";
+  const sameOrigin = origin === new URL(request.url).origin;
+  const isGitHubPagesOrigin = origin === "https://dupatanekrishna.github.io";
+  if (origin && !sameOrigin && !isGitHubPagesOrigin) {
+    return json({ error: "Cross-origin report requests are not allowed" }, 403);
+  }
   const cors = origin ? corsHeaders(origin) : new Headers();
-  if (origin && origin !== new URL(request.url).origin) return json({ error: "Cross-origin report requests are not allowed" }, 403);
   if (request.method === "OPTIONS") {
     cors.set("Access-Control-Allow-Methods", "GET, OPTIONS");
     cors.set("Access-Control-Allow-Headers", "Authorization");
