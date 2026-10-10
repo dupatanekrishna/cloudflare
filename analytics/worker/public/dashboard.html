@@ -59,7 +59,7 @@
       <div class="controls">
         <div><label for="site">Site ID</label><input id="site" value="dkalki-portfolio" autocomplete="off"></div>
         <div><label for="token">Admin token</label><input id="token" type="password" autocomplete="off" placeholder="Paste your Worker secret"></div>
-        <div><label for="days">Date range</label><select id="days"><option value="7">Last 7 × 24 hours</option><option value="30">Last 30 × 24 hours</option><option value="90">Last 90 × 24 hours</option></select></div>
+        <div><label for="range">Date range</label><select id="range"><option value="today">Today (IST)</option><option value="7">Last 7 × 24 hours</option><option value="30">Last 30 × 24 hours</option><option value="90">Last 90 × 24 hours</option></select></div>
         <button id="load" type="button">Load report</button>
       </div>
       <p id="message" class="message" role="status"></p>
@@ -76,7 +76,7 @@
     </section>
 
     <section class="grid">
-      <article class="panel wide"><h2>Anonymous tab sessions by day (UTC)</h2><p class="hint">Each bar counts tab IDs with events on that UTC date. A tab active on multiple dates appears once on each date.</p><div id="daily" class="chart"><p class="muted">Load a report to see daily tab sessions.</p></div></article>
+      <article class="panel wide"><h2>Anonymous tab sessions by day (IST)</h2><p class="hint">Each bar counts tab IDs with events on that IST date. A tab active on multiple dates appears once on each date.</p><div id="daily" class="chart"><p class="muted">Load a report to see daily tab sessions.</p></div></article>
       <article class="panel"><h2>Page views by portfolio path</h2><div id="pages" class="list"></div></article>
       <article class="panel"><h2>Browsers on page views</h2><div id="browsers" class="list"></div></article>
       <article class="panel"><h2>Devices on page views</h2><div id="devices" class="list"></div></article>
@@ -85,7 +85,7 @@
       <article class="panel"><h2>External link clicks by hostname</h2><div id="links" class="list"></div></article>
       <article class="panel wide"><h2>Approximate locations by tab session</h2><div id="locations" class="table-wrap"></div></article>
     </section>
-    <p class="notice">This report counts recorded events; it does not identify people. A tab session is a temporary anonymous ID stored in that tab. One person can create several sessions, and sessions cannot be linked across incognito windows, browsers, or devices. Page views count recorded page_view events. Clicks count recorded portfolio link and section clicks; other clicks are not counted unless explicitly instrumented. Chatbot events count only when the chatbot calls the tracker, so opening a chatbot link alone does not prove the chatbot was used. Active time is approximate and counts only while the portfolio tab is visible. It is sent about every 15 seconds and when the tab is hidden or closed; events can be missed, and visits shorter than one second do not add active time. The averages divide recorded active time by all page views or all tab sessions in the selected period. Manual page_view test events and quick exits can lower the averages. The selected range is a rolling N × 24 hours; daily bars group by UTC calendar dates, so the first and last dates can be partial. A bar counts a tab once per UTC date with events, so one tab can appear on multiple dates. Browser, device, and operating system are inferred from the browser request and count page views; they can be wrong when a browser reports a generic or desktop user-agent. Tracking is skipped when Do Not Track or Global Privacy Control is enabled, and blocked requests are not counted. External-link clicks show only the destination hostname (for example, github.com), not activity on that external site. Location is approximate. The report does not show names, IP addresses, raw user-agent strings, chat messages, or form entries. The token stays in this page's memory and is not saved by the dashboard.</p>
+    <p class="notice">This report counts recorded events; it does not identify people. A tab session is a temporary anonymous ID stored in that tab. One person can create several sessions, and sessions cannot be linked across incognito windows, browsers, or devices. Page views count recorded page_view events. Clicks count recorded portfolio link and section clicks; other clicks are not counted unless explicitly instrumented. Chatbot events count only when the chatbot calls the tracker, so opening a chatbot link alone does not prove the chatbot was used. Active time is approximate and counts only while the portfolio tab is visible. It is sent about every 15 seconds and when the tab is hidden or closed; events can be missed, and visits shorter than one second do not add active time. The averages divide recorded active time by all page views or all tab sessions in the selected period. Manual page_view test events and quick exits can lower the averages. Today (IST) covers midnight to the report time in Asia/Kolkata; the 7-, 30-, and 90-day options are rolling N × 24-hour periods. Daily bars group by IST calendar dates, so the first and last dates of rolling ranges can be partial. A bar counts a tab once per IST date with events, so one tab can appear on multiple dates. Browser, device, and operating system are inferred from the browser request and count page views; they can be wrong when a browser reports a generic or desktop user-agent. Tracking is skipped when Do Not Track or Global Privacy Control is enabled, and blocked requests are not counted. External-link clicks show only the destination hostname (for example, github.com), not activity on that external site. Location is approximate. The report does not show names, IP addresses, raw user-agent strings, chat messages, or form entries. The token stays in this page's memory and is not saved by the dashboard.</p>
   </main>
   <script>
     (function () {
@@ -135,9 +135,11 @@
         var byDay = Object.create(null);
         rows.forEach(function (row) { byDay[row.day] = Number(row.sessions) || 0; });
         var completeRows = [];
-        if (range && range.start_utc && range.end_utc) {
-          var cursor = new Date(range.start_utc + "T00:00:00Z");
-          var end = new Date(range.end_utc + "T00:00:00Z");
+        var startDay = range && (range.start_date_ist || range.start_utc);
+        var endDay = range && (range.end_date_ist || range.end_utc);
+        if (startDay && endDay) {
+          var cursor = new Date(startDay + "T00:00:00Z");
+          var end = new Date(endDay + "T00:00:00Z");
           if (!Number.isNaN(cursor.getTime()) && !Number.isNaN(end.getTime())) {
             while (cursor <= end) {
               var dayKey = cursor.toISOString().slice(0, 10);
@@ -156,7 +158,7 @@
           var bar = document.createElement("div");
           bar.className = "bar";
           bar.style.height = Math.max(2, (Number(row.sessions || 0) / max) * 100) + "px";
-          bar.title = count.textContent + " tab sessions with events (UTC date)";
+          bar.title = count.textContent + " tab sessions with events (IST date)";
           var label = document.createElement("span");
           label.className = "bar-label";
           label.textContent = row.day ? row.day.slice(5) : "";
@@ -205,7 +207,7 @@
         try {
           var url = new URL("/v1/summary", window.location.origin);
           url.searchParams.set("site", site);
-          url.searchParams.set("days", $("days").value);
+          url.searchParams.set("range", $("range").value);
           var response = await fetch(url, { headers: { "Authorization": "Bearer " + token } });
           var data = await response.json();
           if (!response.ok) throw new Error(data.error || "Could not load report.");
@@ -228,8 +230,9 @@
           renderList("links", data.external_links);
           renderLocations(data.locations);
           var refreshedAt = new Date();
-          lastSuccessfulReport = { description: site + ", last " + data.days + " days, " + refreshedAt.toLocaleTimeString(), time: refreshedAt };
-          setMessage("Report refreshed at " + refreshedAt.toLocaleTimeString() + " for the last " + data.days + " days.", false);
+          var rangeLabel = data.period === "today" ? "Today (IST)" : "last " + data.days + " × 24 hours";
+          lastSuccessfulReport = { description: site + ", " + rangeLabel + ", " + refreshedAt.toLocaleTimeString(), time: refreshedAt };
+          setMessage("Report refreshed at " + refreshedAt.toLocaleTimeString() + " for " + rangeLabel + ".", false);
         } catch (error) {
           var errorMessage = error && error.message ? error.message : "Could not load report.";
           if (lastSuccessfulReport) errorMessage += " Showing the previous report from " + lastSuccessfulReport.description + ".";
@@ -240,7 +243,7 @@
       }
       $("load").addEventListener("click", loadReport);
       $("token").addEventListener("keydown", function (event) { if (event.key === "Enter") loadReport(); });
-      $("days").addEventListener("change", function () {
+      $("range").addEventListener("change", function () {
         if ($("token").value) loadReport();
       });
     })();
