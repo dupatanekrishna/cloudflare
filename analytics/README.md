@@ -8,7 +8,7 @@ This project is isolated from the existing chatbot Worker and its D1 database. I
 
 - **API and tracker:** Cloudflare Worker at `https://site-analytics-api.support-dupatane.workers.dev`.
 - **Database:** Cloudflare D1 database named `site-analytics`.
-- **Dashboard:** GitHub Pages project site at `https://dupatanekrishna.github.io/cloudflare/`.
+- **Dashboard:** GitHub Pages custom domain at `https://analytics.dkalki.com`.
 - **Portfolio tracking:** The browser script posts events to the Worker. The existing portfolio DNS and GitHub Pages hosting do not need to change for analytics.
 
 The Cloudflare Worker still serves `/health`, `/tracker.js`, `/dashboard`, `/v1/events`, and `/v1/summary`. GitHub Pages serves the same dashboard HTML as a static page, separated from the API.
@@ -35,6 +35,7 @@ The collector does not store IP addresses, raw user-agent strings, query strings
 - `worker/public/tracker.js` — browser event script served by the Worker.
 - `worker/public/dashboard.html` — dashboard source served by the Worker and copied to GitHub Pages.
 - `worker/wrangler.jsonc` — Worker, D1, assets, cron, and logging configuration.
+- `DEPLOYMENT.md` — current Pages, DNS, Worker API, and safe verification runbook.
 - `../.github/workflows/deploy-analytics-pages.yml` — publishes the dashboard to GitHub Pages.
 
 ## GitHub Pages dashboard
@@ -43,9 +44,13 @@ The dashboard frontend is public, but report data still requires the `ADMIN_TOKE
 
 After the repository is public, open **Settings → Pages** and set **Build and deployment → Source** to **GitHub Actions**. The workflow publishes `worker/public/dashboard.html` as the Pages entry page whenever it changes on `main`.
 
-The Pages address is `https://dupatanekrishna.github.io/cloudflare/`. The API allows report requests from the exact origin `https://dupatanekrishna.github.io`. If the GitHub username or repository name changes, update that CORS origin and the URL in this README.
+The dashboard address is `https://analytics.dkalki.com`. In GoDaddy, the DNS record is a CNAME with host `analytics` pointing to `dupatanekrishna.github.io`. The repository root `CNAME` file contains `analytics.dkalki.com`.
 
-This approach does not require changing GoDaddy nameservers, moving the portfolio to Cloudflare DNS, or setting up `analytics.dkalki.com`. Keep using the working `workers.dev` endpoint unless you later choose to configure a custom domain separately.
+Keep the existing nameservers, apex (`@`) records, and portfolio host record unchanged. DNS verification and TLS certificate issuance can take time after adding the CNAME. Enable **Enforce HTTPS** in Pages once GitHub makes it available.
+
+The dashboard calls the Worker API at `https://site-analytics-api.support-dupatane.workers.dev`. The Worker summary endpoint allows only the exact dashboard origins `https://dupatanekrishna.github.io` and `https://analytics.dkalki.com`; it does not use a wildcard CORS origin. In this setup, `analytics.dkalki.com` is the dashboard host and the API remains on `workers.dev`. Use a distinct hostname if a custom Worker API domain is configured later.
+
+See [DEPLOYMENT.md](DEPLOYMENT.md) for the setup, deployment, and verification runbook.
 
 ## Cloudflare setup
 
