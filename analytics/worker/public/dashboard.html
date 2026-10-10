@@ -91,6 +91,7 @@
     (function () {
       "use strict";
       var $ = function (id) { return document.getElementById(id); };
+      var apiOrigin = "https://site-analytics-api.support-dupatane.workers.dev";
       var message = $("message");
       function setMessage(text, error) {
         message.textContent = text || "";
@@ -205,7 +206,7 @@
         setMessage(lastSuccessfulReport ? "Refreshing. Previous report: " + lastSuccessfulReport.description + "." : "Loading report…", false);
         $("load").disabled = true;
         try {
-          var url = new URL("/v1/summary", window.location.origin);
+          var url = new URL("/v1/summary", apiOrigin);
           url.searchParams.set("site", site);
           url.searchParams.set("range", $("range").value);
           var response = await fetch(url, { headers: { "Authorization": "Bearer " + token } });
