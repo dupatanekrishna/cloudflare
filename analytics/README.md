@@ -35,7 +35,7 @@ The collector does not store IP addresses, raw user-agent strings, query strings
 - `worker/public/tracker.js` — browser event script served by the Worker.
 - `worker/public/dashboard.html` — dashboard source served by the Worker and copied to GitHub Pages.
 - `worker/wrangler.jsonc` — Worker, D1, assets, cron, and logging configuration.
-- `.github/workflows/deploy-analytics-pages.yml` — publishes the dashboard to GitHub Pages.
+- `../.github/workflows/deploy-analytics-pages.yml` — publishes the dashboard to GitHub Pages.
 
 ## GitHub Pages dashboard
 
