@@ -59,7 +59,7 @@
       <div class="controls">
         <div><label for="site">Site ID</label><input id="site" value="dkalki-portfolio" autocomplete="off"></div>
         <div><label for="token">Admin token</label><input id="token" type="password" autocomplete="off" placeholder="Paste your Worker secret"></div>
-        <div><label for="days">Date range</label><select id="days"><option value="7">Last 7 days</option><option value="30">Last 30 days</option><option value="90">Last 90 days</option></select></div>
+        <div><label for="days">Date range</label><select id="days"><option value="7">Last 7 × 24 hours</option><option value="30">Last 30 × 24 hours</option><option value="90">Last 90 × 24 hours</option></select></div>
         <button id="load" type="button">Load report</button>
       </div>
       <p id="message" class="message" role="status"></p>
@@ -76,8 +76,8 @@
     </section>
 
     <section class="grid">
-      <article class="panel wide"><h2>Anonymous tab sessions by day (UTC)</h2><div id="daily" class="chart"><p class="muted">Load a report to see daily visits.</p></div></article>
-      <article class="panel"><h2>Portfolio page views</h2><div id="pages" class="list"></div></article>
+      <article class="panel wide"><h2>Anonymous tab sessions by day (UTC)</h2><p class="hint">Each bar counts tab IDs with events on that UTC date. A tab active on multiple dates appears once on each date.</p><div id="daily" class="chart"><p class="muted">Load a report to see daily tab sessions.</p></div></article>
+      <article class="panel"><h2>Page views by portfolio path</h2><div id="pages" class="list"></div></article>
       <article class="panel"><h2>Browsers on page views</h2><div id="browsers" class="list"></div></article>
       <article class="panel"><h2>Devices on page views</h2><div id="devices" class="list"></div></article>
       <article class="panel"><h2>Operating systems on page views</h2><div id="systems" class="list"></div></article>
@@ -85,7 +85,7 @@
       <article class="panel"><h2>External link clicks by hostname</h2><div id="links" class="list"></div></article>
       <article class="panel wide"><h2>Approximate locations by tab session</h2><div id="locations" class="table-wrap"></div></article>
     </section>
-    <p class="notice">This report refreshes only when you click <strong>Load report</strong>. It counts events, not people. Sessions are anonymous IDs per browser tab; the same person may create several sessions, and sessions across incognito tabs or devices cannot be linked. Total active time sums visible-tab events; the per-page and per-session averages divide that total by all page views or tab sessions and can fall when manual page-view tests or quick exits add visits with little time. Active time is approximate and is sent about every 15 seconds while a site page is visible. Browser, device, and operating-system panels count page views and are inferred from the browser request, not unique visitors. Daily grouping uses UTC. External-link clicks show only the destination host, not visits on GitHub or other external sites. Location is approximate. The report does not show names, IP addresses, chat messages, or form entries. The token stays in this page's memory and is not saved by the dashboard.</p>
+    <p class="notice">This report counts recorded events; it does not identify people. A tab session is a temporary anonymous ID stored in that tab. One person can create several sessions, and sessions cannot be linked across incognito windows, browsers, or devices. Page views count recorded page_view events. Clicks count recorded portfolio link and section clicks; other clicks are not counted unless explicitly instrumented. Chatbot events count only when the chatbot calls the tracker, so opening a chatbot link alone does not prove the chatbot was used. Active time is approximate and counts only while the portfolio tab is visible. It is sent about every 15 seconds and when the tab is hidden or closed; events can be missed, and visits shorter than one second do not add active time. The averages divide recorded active time by all page views or all tab sessions in the selected period. Manual page_view test events and quick exits can lower the averages. The selected range is a rolling N × 24 hours; daily bars group by UTC calendar dates, so the first and last dates can be partial. A bar counts a tab once per UTC date with events, so one tab can appear on multiple dates. Browser, device, and operating system are inferred from the browser request and count page views; they can be wrong when a browser reports a generic or desktop user-agent. Tracking is skipped when Do Not Track or Global Privacy Control is enabled, and blocked requests are not counted. External-link clicks show only the destination hostname (for example, github.com), not activity on that external site. Location is approximate. The report does not show names, IP addresses, raw user-agent strings, chat messages, or form entries. The token stays in this page's memory and is not saved by the dashboard.</p>
   </main>
   <script>
     (function () {
@@ -128,12 +128,27 @@
           root.appendChild(line);
         });
       }
-      function renderDaily(rows) {
+      function renderDaily(rows, range) {
         var root = $("daily");
         root.replaceChildren();
         if (!rows || !rows.length) return empty(root, "No visits for this period.");
-        var max = Math.max.apply(null, rows.map(function (r) { return Number(r.sessions) || 0; }).concat([1]));
-        rows.forEach(function (row) {
+        var byDay = Object.create(null);
+        rows.forEach(function (row) { byDay[row.day] = Number(row.sessions) || 0; });
+        var completeRows = [];
+        if (range && range.start_utc && range.end_utc) {
+          var cursor = new Date(range.start_utc + "T00:00:00Z");
+          var end = new Date(range.end_utc + "T00:00:00Z");
+          if (!Number.isNaN(cursor.getTime()) && !Number.isNaN(end.getTime())) {
+            while (cursor <= end) {
+              var dayKey = cursor.toISOString().slice(0, 10);
+              completeRows.push({ day: dayKey, sessions: byDay[dayKey] || 0 });
+              cursor.setUTCDate(cursor.getUTCDate() + 1);
+            }
+          }
+        }
+        if (!completeRows.length) completeRows = rows;
+        var max = Math.max.apply(null, completeRows.map(function (r) { return Number(r.sessions) || 0; }).concat([1]));
+        completeRows.forEach(function (row) {
           var day = document.createElement("div");
           day.className = "day";
           var count = document.createElement("span");
@@ -141,7 +156,7 @@
           var bar = document.createElement("div");
           bar.className = "bar";
           bar.style.height = Math.max(2, (Number(row.sessions || 0) / max) * 100) + "px";
-          bar.title = count.textContent + " sessions";
+          bar.title = count.textContent + " tab sessions with events (UTC date)";
           var label = document.createElement("span");
           label.className = "bar-label";
           label.textContent = row.day ? row.day.slice(5) : "";
@@ -156,7 +171,7 @@
         var table = document.createElement("table");
         var head = document.createElement("thead");
         var header = document.createElement("tr");
-        ["Country", "Region", "City", "Sessions"].forEach(function (title) {
+        ["Country", "Region", "City", "Tab sessions"].forEach(function (title) {
           var th = document.createElement("th");
           th.textContent = title;
           header.appendChild(th);
@@ -175,6 +190,7 @@
         table.append(head, body);
         root.appendChild(table);
       }
+      var lastSuccessfulReport = null;
       function formatDuration(seconds) {
         seconds = Number(seconds) || 0;
         if (seconds < 60) return Math.round(seconds) + " sec";
@@ -184,7 +200,7 @@
         var site = $("site").value.trim();
         var token = $("token").value;
         if (!site || !token) return setMessage("Enter the site ID and admin token.", true);
-        setMessage("Loading report…", false);
+        setMessage(lastSuccessfulReport ? "Refreshing. Previous report: " + lastSuccessfulReport.description + "." : "Loading report…", false);
         $("load").disabled = true;
         try {
           var url = new URL("/v1/summary", window.location.origin);
@@ -201,7 +217,7 @@
           setMetric("active", formatDuration(totals.avg_active_seconds_per_page_view));
           setMetric("activeSession", formatDuration(totals.avg_active_seconds_per_session));
           setMetric("chat", Number(totals.chatbot_events || 0).toLocaleString());
-          renderDaily(data.daily);
+          renderDaily(data.daily, data.range);
           renderList("pages", data.top_pages);
           renderList("browsers", data.browsers);
           renderList("devices", data.devices);
@@ -211,9 +227,13 @@
           }));
           renderList("links", data.external_links);
           renderLocations(data.locations);
-          setMessage("Report refreshed at " + new Date().toLocaleTimeString() + " for the last " + data.days + " days.", false);
+          var refreshedAt = new Date();
+          lastSuccessfulReport = { description: site + ", last " + data.days + " days, " + refreshedAt.toLocaleTimeString(), time: refreshedAt };
+          setMessage("Report refreshed at " + refreshedAt.toLocaleTimeString() + " for the last " + data.days + " days.", false);
         } catch (error) {
-          setMessage(error && error.message ? error.message : "Could not load report.", true);
+          var errorMessage = error && error.message ? error.message : "Could not load report.";
+          if (lastSuccessfulReport) errorMessage += " Showing the previous report from " + lastSuccessfulReport.description + ".";
+          setMessage(errorMessage, true);
         } finally {
           $("load").disabled = false;
         }
