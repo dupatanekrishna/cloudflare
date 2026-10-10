@@ -22,7 +22,7 @@ export default {
       return assetResponse(request, env, "/tracker.js");
     }
     if ((url.pathname === "/dashboard" || url.pathname === "/dashboard/") && request.method === "GET") {
-      return assetResponse(request, env, "/dashboard.html");
+      return assetResponse(request, env, "/dashboard");
     }
     if (url.pathname === "/v1/events" && (request.method === "POST" || request.method === "OPTIONS")) {
       return handleEvents(request, env, url);
@@ -43,10 +43,9 @@ export default {
 };
 
 async function assetResponse(request, env, pathname) {
-  const assetUrl = new URL(request.url);
-  assetUrl.pathname = pathname;
+  const assetUrl = new URL(pathname, request.url);
   assetUrl.search = "";
-  const asset = await env.ASSETS.fetch(new Request(assetUrl, request));
+  const asset = await env.ASSETS.fetch(assetUrl);
   if (!asset.ok) return json({ error: "Asset not found" }, 404);
   const headers = new Headers(asset.headers);
   headers.set("Cache-Control", pathname === "/tracker.js" ? "public, max-age=300" : "no-store");
@@ -147,7 +146,8 @@ async function handleSummary(request, env, url) {
 
   const parsedDays = Number.parseInt(url.searchParams.get("days") || "7", 10);
   const days = Number.isFinite(parsedDays) ? Math.max(1, Math.min(MAX_DAYS, parsedDays)) : 7;
-  const since = Math.floor(Date.now() / 1000) - days * 86400;
+  const now = Math.floor(Date.now() / 1000);
+  const since = now - days * 86400;
   try {
     const [totals, daily, pages, browsers, devices, operatingSystems, locations, externalLinks, chat] = await Promise.all([
       env.DB.prepare(
@@ -184,6 +184,10 @@ async function handleSummary(request, env, url) {
     return json({
       site_id: siteId,
       days,
+      range: {
+        start_utc: new Date(since * 1000).toISOString().slice(0, 10),
+        end_utc: new Date(now * 1000).toISOString().slice(0, 10)
+      },
       totals: {
         sessions,
         page_views: pageViews,
