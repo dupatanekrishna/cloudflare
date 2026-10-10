@@ -149,7 +149,7 @@ async function handleSummary(request, env, url) {
   const isToday = requestedRange.toLowerCase() === "today";
   const requestedDays = /^[0-9]+$/.test(requestedRange) ? requestedRange : (url.searchParams.get("days") || "7");
   const parsedDays = Number.parseInt(requestedDays, 10);
-  const days = Number.isFinite(parsedDays) ? Math.max(1, Math.min(MAX_DAYS, parsedDays)) : 7;
+  const days = isToday ? 1 : (Number.isFinite(parsedDays) ? Math.max(1, Math.min(MAX_DAYS, parsedDays)) : 7);
   const now = Math.floor(Date.now() / 1000);
   const since = isToday ? startOfTodayIst(now) : now - days * 86400;
   const startDateIst = istDateString(since);
